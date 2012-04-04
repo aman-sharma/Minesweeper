@@ -1,0 +1,309 @@
+<html>
+<title>Minesweeper</title>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5/jquery.min.js"></script>
+<script type="text/javascript">
+	var rows,columns,no_of_mines,count_open=0,total,flagged_as_mines=0,flagged_correct=0,cheats=0;
+	var arr=new Array();
+	var mines= new Array();
+	function create_board(r,c,difficulty){
+		if(r>20 || c>20 || difficulty>50){
+			alert('Enter Valid Values: Rows<=20 && Columns<=20 && No_of_Mines<=50');
+			return;
+		}
+
+		$("#game_result").hide();
+		document.getElementById("space").innerHTML="";
+		var i,j;
+		rows=r;
+		columns=c;
+		no_of_mines=difficulty;
+		total=r*c;
+		flagged_correct=0,cheats=0;
+		if(no_of_mines>total){
+			alert('Hey ,Number of Mines must be less than the total number of tiles!!!');
+			return;
+		}
+		count_open=0;
+		flagged_as_mines=0;
+		for(i=1;i<=r;i++)
+		{
+			for(j=1;j<=c;j++)
+			{
+				var button=document.createElement("button");
+				button.setAttribute('id', "bc"+i+" "+j);
+				button.setAttribute('onmousedown',"process(event,"+i+","+j+");");
+				button.setAttribute('className',"game_buttons");
+				button.className="game_buttons";
+				document.getElementById("space").appendChild(button);
+			}
+			document.getElementById("space").innerHTML+='</br>';
+		}
+		i=0;
+		while(i<rows+2){
+			arr[i]=new Array(columns+2);
+			var j=0;
+			while(j<columns+2){
+				arr[i][j]=0;
+				j++;
+			}
+			i++;
+		}
+		i=0;
+		while(i<no_of_mines)
+		{
+			var k=Math.floor(Math.random()*total);
+			var ri=Math.floor(k/columns);
+			var ci=k%columns;
+			if(arr[ri+1][ci+1]==0){
+				arr[ri+1][ci+1]=1;
+				mines[i]=k;
+				i++;
+			}	
+		}
+
+		document.getElementById("cheat").setAttribute('onmousedown',"cheat();");
+		document.getElementById("validate").setAttribute('onmousedown',"validate();");
+	}	
+	function nearby_mines(i,j){
+		var near;
+		near=arr[i-1][j-1]+arr[i-1][j]+arr[i-1][j+1];
+		near+=arr[i][j-1]+arr[i][j+1];
+		near+=arr[i+1][j-1]+arr[i+1][j]+arr[i+1][j+1];
+		return near;
+	}
+	function open_neighbour(i,j){
+		if(i>=1 && j>=1 && i<=rows && j<=columns && arr[i][j]!=1 && document.getElementById("bc"+""+(i)+" "+(j)).innerHTML=="" && document.getElementById("bc"+""+(i)+" "+(j)).style.backgroundColor!="black"){
+			document.getElementById("bc"+""+(i)+" "+(j)).innerHTML=nearby_mines(i,j);
+			count_open++;
+			document.getElementById("bc"+""+(i)+" "+(j)).style.backgroundColor="greenyellow";		
+			if(nearby_mines(i,j)==0){
+				document.getElementById("bc"+""+(i)+" "+(j)).style.backgroundColor="orange";
+				check_neighbour(i,j);
+			}
+		}
+	}
+	function check_neighbour(i,j){
+			open_neighbour(i-1,j-1);		
+			open_neighbour(i,j-1);
+			open_neighbour(i+1,j-1);
+			open_neighbour(i-1,j);
+			open_neighbour(i+1,j);
+			open_neighbour(i-1,j+1);
+			open_neighbour(i,j+1);
+			open_neighbour(i+1,j+1);
+	}
+	function game_over(){
+		var i=0,k;
+		while(i<no_of_mines){
+			k=mines[i];
+			var ri=Math.floor(k/columns)+1;
+			var ci=(k%columns)+1;
+			document.getElementById("bc"+""+ri+" "+ci).innerHTML="M";
+			document.getElementById("bc"+""+ri+" "+ci).style.backgroundColor="red";
+			i++;
+		}
+		$(".game_buttons").removeAttr("onmousedown");
+		$("#cheat").removeAttr("onmousedown");
+		$("#validate").removeAttr("onmousedown");
+
+	}
+	function process_click(i,j){
+		if(arr[i][j]==1){
+			document.getElementById("bc"+""+i+" "+j).innerHTML="M";	
+			document.getElementById("bc"+""+i+" "+j).style.backgroundColor="red";
+			game_over();	
+			document.getElementById("game_result").innerHTML="Sorry,you lost</br>";	
+			$("#game_result").toggle('slow');
+		}
+		else{
+			count_open++;
+			$("#bc"+i+""+j).removeAttr("onmousedown");
+			if(document.getElementById("bc"+""+(i)+" "+(j)).style.backgroundColor=="black")
+				flagged_as_mines--;
+			document.getElementById("bc"+""+i+" "+j).style.backgroundColor="greenyellow";
+			var k2=nearby_mines(i,j);
+			document.getElementById("bc"+""+i+" "+j).innerHTML=k2;
+			if(k2==0){
+				document.getElementById("bc"+""+(i)+" "+(j)).style.backgroundColor="orange";
+				check_neighbour(i,j);
+			}
+		}
+	}
+	function process_mdlclick(i,j){
+		if(document.getElementById("bc"+""+i+" "+j).style.backgroundColor!="yellow" && document.getElementById("bc"+""+i+" "+j).style.backgroundColor!="black"){
+			document.getElementById("bc"+""+i+" "+j).style.backgroundColor="yellow";
+		}
+		else if(document.getElementById("bc"+""+i+" "+j).style.backgroundColor=="yellow"){
+			document.getElementById("bc"+""+i+" "+j).style.backgroundColor="";
+		}	
+		else{
+			document.getElementById("bc"+""+i+" "+j).style.backgroundColor=="yellow";
+			flagged_as_mines--;
+			if(arr[i][j]==1)
+				flagged_as_correct--;
+		}
+	}
+	function process_rtclick(i,j){
+		if(document.getElementById("bc"+""+i+" "+j).style.backgroundColor!="black"){
+			document.getElementById("bc"+""+i+" "+j).style.backgroundColor="black";
+				flagged_as_mines++;
+			if(arr[i][j]==1)
+				flagged_correct++;
+		}
+		else{
+			document.getElementById("bc"+""+i+" "+j).style.backgroundColor="";
+				flagged_as_mines--;
+			if(arr[i][j]==1)
+				flagged_correct--;		
+		}
+	}
+	function process(event,i,j){
+		switch(event.which){
+			case 1:
+				process_click(i,j);
+				break;
+			case 2:
+				process_mdlclick(i,j);
+				break;
+			case 3:
+				process_rtclick(i,j);
+				break;
+		}
+	
+	}
+	function validate(){
+
+		if(flagged_correct==no_of_mines && flagged_as_mines==no_of_mines){
+			document.getElementById("game_result").innerHTML="Congrats.You have solved it correctly.</br>";
+		}
+		else{
+			document.getElementById("game_result").innerHTML=flagged_correct+" of your "+flagged_as_mines+" marked flags are correct</br>";
+		}
+		game_over();
+		$("#game_result").slideDown('slow');
+	}
+	function cheat(){
+		if(cheats==5 || cheats==(no_of_mines-1)){
+			alert("Stop cheating!!!All your cheats are over:C");
+			return;
+		}
+		var i=0,k;
+		cheats++;
+		while(i<no_of_mines){
+			k=mines[i];
+			var ri=Math.floor(k/columns)+1;
+			var ci=(k%columns)+1;
+			var color=document.getElementById("bc"+""+ri+" "+ci).style.backgroundColor;
+			if(color!="aqua" && color!="black"){
+				document.getElementById("bc"+""+ri+" "+ci).style.backgroundColor="aqua";
+				check_neighbour(ri,ci);
+				break;
+			}
+			i++;
+		}
+	}
+</script>
+<style>
+	body{
+		background-color: blue;	
+	}
+	#head{
+		font-family: New Century Schoolbook;
+		text-align: center;
+	}
+	button.game_buttons{
+		height: 30px;
+		width: 30px;
+		margin: 5px;
+		font-weight :bold
+	}
+	button.functions{
+		position: relative;
+		top :100px;
+		height : 60px;
+		width : 50%;
+		font-weight :bold;
+		float :left;
+	}
+	#space{
+		position :relative;
+		top: 20%;
+		margin-top: 50px;
+	}
+	#head{
+		background-color: red;
+	}
+	#resize_menu{
+		background-color: orange;
+		position: relative;
+		top: 100px;
+		bottom: 100px;
+		float: right;
+		height: 60px;
+		width: 50%;
+	}
+	#info{
+		background-color: orange;
+		position: relative;
+		top: 100px;
+		bottom: 100px;
+		float: left;
+		height: 180px;
+		width: 50%;
+	}
+	img{
+		height: 30px;
+		width: 30px;
+	}
+	#game_result{
+		background-color: white;
+		position :relative;
+		top: 20%;
+		height: 40px;
+		width: 300px;
+		margin-left: 38%;
+		margin-top: 50px;
+		text-align: center;
+	}
+</style>
+<div id="head">
+	<h1>MINESWEEPER</h1></br>
+	<h4>Developed By Aman Sharma</h4></br>
+</div>
+<hr>
+<div id="space" align="center">
+<script type="text/javascript">
+	create_board(8,8,10);
+</script>
+</div align="center">
+<div id="game_result">
+</div>
+<button class="functions" id="reset" onmousedown="create_board(rows,columns,no_of_mines);">RESET</button>
+<button class="functions" id="validate" onmousedown="validate();">VALIDATE<img src="smiley-face.jpg" align="middle"></button>
+<button class="functions" id="cheat" onmousedown="cheat();">CHEAT</button>
+<button class="functions" id="resize" onmousedown="$('#resize_menu').toggle('slow');">RESIZE</button>
+<button class="functions" id="instr" onmousedown="$('#info').toggle('slow');">INSTRUCTIONS</button>
+<div id="resize_menu" class="menu">
+	<form name="resize_form" action="">
+		Rows:<input type="text" name="length" value="8">
+		Columns:<input type="text" name="width" value="8">
+		No_of_mines:<input type="text" name="difficulty" value="10">
+		<input type="button" name="button" value="Submit!!" onmousedown="create_board(this.form.length.value,this.form.width.value,this.form.difficulty.value);">
+	</form>
+</div>
+<div id="info" class="menu">
+1.Select the no. of rows(<=20),columns(<=20) and mines(<=50) from the resize menu</br>
+2.Left Click a tile to open it.</br>
+3.Right click a tile to flag it as mine.</br>
+4.Middle Click a tile if you are in doubt(Colour will change)</br>
+5.Click cheat(<=5 times) to reveal a mine and all of its neighbours which are not mines</br>
+6.Once you are done flagging tiles,click validate to check your result.</br>
+7.Click reset to reset the board with a different game
+</div>
+<script>
+	$('#resize_menu').hide();
+	$("#game_result").hide();
+	$("#info").hide();
+</script>
+<hr>
+</html>
